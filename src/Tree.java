@@ -13,11 +13,40 @@ public class Tree {
         root.left.right = new TreeNode(7);
         root.right.left = new TreeNode(9);
 
+        TreeNode root2 = new TreeNode(1);
+        root2.left = new TreeNode(-3);
+        root2.left.left = new TreeNode(-2);
         System.out.println(diameter(root));
         System.out.println(lca(root, 7, 8).data);
+        System.out.println(maxPathSum(root2));
+
+
+
+        System.out.println(flipBinaryTree(root));
     }
 
-    private static TreeNode lca(TreeNode root, int i, int i1) {
+    private static TreeNode flipBinaryTree(TreeNode root) {
+        if(root == null || (root.left == null && root.right == null)) {
+            return root;
+        }
+        TreeNode curr = root;
+        TreeNode next = null;
+        TreeNode prev = null;
+        TreeNode ptr = null;
+
+
+        while(curr != null) {
+            next = curr.left; // next will be curr left beoming root
+            curr.left = ptr; // assign sibling now
+            ptr = curr.right; // store next runs sibling now
+            curr.right = prev; // assign parent now
+            prev = curr;
+            curr = next;
+        }
+        return prev;
+    }
+
+    public static TreeNode lca(TreeNode root, int i, int i1) {
         if (root == null) {
             return null;
         }
@@ -38,7 +67,7 @@ public class Tree {
 
     }
 
-    private static int diameter(TreeNode root) {
+    public static int diameter(TreeNode root) {
         int[] res = new int[1];
         diameterRecc(root, res);
         return res[0];
@@ -54,7 +83,25 @@ public class Tree {
         return 1 + Math.max(lh, rh);
     }
 
+    public static int maxPathSum(TreeNode root) {
+        int[] res = new int[1];
+        res[0] = -1001;
+        res[0] = Math.max(maxPathSumUtil(root, res), res[0]);
+        return res[0];
+    }
 
+    private static int maxPathSumUtil(TreeNode root, int[] res) {
+        if (root == null) {
+            return 0;
+        }
+        int lsum = maxPathSumUtil(root.left, res);
+        int rsum = maxPathSumUtil(root.right, res);
+        res[0] = Math.max(res[0], lsum + rsum + root.data);
+        if (lsum > rsum) {
+            return Math.max(lsum + root.data, root.data);
+        }
+        return Math.max(rsum + root.data, root.data);
+    }
 }
 
 class TreeNode {

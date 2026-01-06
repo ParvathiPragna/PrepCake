@@ -51,9 +51,11 @@ public class ImageCounter {
 ### 🔹 3. **Use Atomic Variables**
 For lightweight thread-safe counters or flags.
 
-```java
-AtomicInteger imageCount = new AtomicInteger(0);
-imageCount.incrementAndGet();
+```java 
+{
+        AtomicInteger imageCount=new AtomicInteger(0);
+        imageCount.incrementAndGet();
+        }
 ```
 
 ✅ Lock-free and fast  
@@ -130,4 +132,3 @@ For your microservice:
 
 ---
 
-Would you like to refactor a specific class from your codebase using this checklist, or build a reusable template for peer reviews? I can also help simulate concurrency bugs for interview prep.

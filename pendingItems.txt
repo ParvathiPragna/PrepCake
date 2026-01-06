@@ -1,0 +1,10 @@
+2. spl dynamic programming
+3. quick sort &  other sort md & problems
+4. DFS vs BFS variations in problems
+5. huffman coding
+6. trie vs dictionary (spl data structures)
+7. spring related
+8. current project achievements & struggles
+9. system design questions
+10. add md files about designing of LRU cache, N tier architecture
+11. solve 20 + questions on stacks & queues , heaps
