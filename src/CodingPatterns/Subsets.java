@@ -33,6 +33,118 @@ public class Subsets {
         //"BAT", "BA1", "B1T", "B2", "1AT", "1A1", "2T", "3"
         System.out.println("general abbveriations : " + generateGeneralizedAbbreviation("BAT"));
 
+        // rat in maze
+        int[][] m = {{1, 0, 0, 0, 0},
+                {1, 1, 1, 1, 1},
+                {1, 1, 1, 0, 1},
+                {0, 0, 0, 0, 1},
+                {0, 0, 0, 0, 1}};
+        int n = m.length;
+        List<String> ans = ratMaze(m, n);
+        for (String i : ans) {
+            System.out.println(i + " ");
+        }
+
+        int[][] result = knightTour(5);
+
+        for (int[] row : result) {
+            for (int val : row) {
+                System.out.print(val + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    private static int[][] knightTour(int n) {
+        int[][] board = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(board[i], -1);
+
+        }
+        board[0][0] = 0;
+        int[] dx = new int[]{2, 1, -1, -2, 2, 1, -1, -2};
+        int[] dy = new int[]{1, 2, -2, 1, -1, -2, 2, -1};
+
+        if (knightTourUtil(board, n, 1, 0, 0, dx, dy)){
+            return board;
+        }
+            return new int[0][];
+    }
+
+    private static boolean knightTourUtil(int[][] board, int n, int step, int x, int y, int[] dx, int[] dy) {
+        if (step == n * n) {
+            return true;
+        }
+
+        for (int i = 0; i < 8; i++) {
+            var p = x + dx[i];
+            var q = y + dy[i];
+
+            if (p >= 0 && p < n && q >= 0 && q < n && board[p][q] == -1) {
+                board[p][q] = step;
+                if (knightTourUtil(board, n, step + 1, p, q, dx, dy)) {
+                    return true;
+                }
+                board[p][q] = -1;
+            }
+        }
+        return false;
+    }
+
+    /*
+     Consider a rat placed at (0, 0) in a square matrix m[ ][ ] of order n and
+     has to reach the destination at (n-1, n-1).
+     The task is to find a sorted array of strings denoting all the possible directions
+     which the rat can take to reach the destination at (n-1, n-1).
+     The directions in which the rat can move are
+     'U'(up), 'D'(down), 'L' (left), 'R' (right).
+     */
+    private static List<String> ratMaze(int[][] m, int n) {
+        List<String> results = new ArrayList<>();
+        boolean[][] visit = new boolean[n][n];
+        backtrackRatPath(m, results, n, new StringBuilder(), new int[]{0, 0}, visit);
+        return results;
+    }
+
+    private static void backtrackRatPath(int[][] mat, List<String> results, int n, StringBuilder temp, int[] start, boolean[][] visit) {
+        if (start[0] == n - 1 && start[1] == n - 1) {
+            results.add(temp.toString());
+            return;
+        }
+        // explore paths
+        int x = start[0];
+        int y = start[1];
+        int len = temp.length();
+        if (x + 1 < n && mat[x + 1][y] == 1 && !visit[x + 1][y]) {
+            temp.append('D');
+            visit[x + 1][y] = true;
+            backtrackRatPath(mat, results, n, temp, new int[]{x + 1, y}, visit);
+            temp.setLength(len);
+            visit[x + 1][y] = false;
+
+        }
+        if (x - 1 > 0 && mat[x - 1][y] == 1 && !visit[x - 1][y]) {
+            temp.append('U');
+            visit[x - 1][y] = true;
+            backtrackRatPath(mat, results, n, temp, new int[]{x - 1, y}, visit);
+            temp.setLength(len);
+            visit[x - 1][y] = false;
+        }
+        if (y + 1 < n && mat[x][y + 1] == 1 && !visit[x][y + 1]) {
+            temp.append('R');
+            visit[x][y + 1] = true;
+            backtrackRatPath(mat, results, n, temp, new int[]{x, y + 1}, visit);
+            temp.setLength(len);
+            visit[x][y + 1] = false;
+        }
+        if (y - 1 > 0 && mat[x][y - 1] == 1 && !visit[x][y - 1]) {
+            temp.append('L');
+            visit[x][y - 1] = true;
+            backtrackRatPath(mat, results, n, temp, new int[]{x, y - 1}, visit);
+            visit[x][y - 1] = false;
+            temp.setLength(len);
+        }
+
     }
 
     private static List<List<Integer>> getAllSubsets1(Integer[] nums) {

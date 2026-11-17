@@ -43,7 +43,7 @@ public class Graphs {
                 {1, 1, 0, 0}
         };
 
-        System.out.println("max area of rectangle in matrix : "+maxAreaMatrix(mat));
+        System.out.println("max area of rectangle in matrix : " + maxAreaMatrix(mat));
 
         int[] price = {1, 5, 8, 9, 10, 17, 17, 20};
         System.out.println("cut rod to get max price: " + cutRod(price));
@@ -70,13 +70,51 @@ public class Graphs {
 
 
         int n = 4;
-        int[][] prerequisites = {  {2, 0}, {2, 1}, {3, 2}  };
+        int[][] prerequisites = {{2, 0}, {2, 1}, {3, 2}};
 
         ArrayList<Integer> result = findOrder(n, prerequisites);
 
         for (int course : result) {
             System.out.print(course + " ");
         }
+
+
+        List<int[]> edges = Arrays.asList(
+                new int[]{0, 1, 10},
+                new int[]{0, 2, 3},
+                new int[]{2, 1, 1},
+                new int[]{1, 3, 2},
+                new int[]{2, 3, 8},
+                new int[]{3, 4, 7}
+        );
+
+        int[] times = shortestDeliveryTimes(5, edges, 0);
+        System.out.println(Arrays.toString(times));
+        // Expected output: [0, 4, 3, 6, 13]
+    }
+
+    private static int[] shortestDeliveryTimes(int v, List<int[]> edges, int start) {
+        int[] dist = new int[v];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        List<List<int[]>> g = new ArrayList<>();
+        for (int i = 0; i < v; i++) g.add(new ArrayList<>());
+        for (int[] e : edges) {
+            g.get(e[0]).add(new int[]{e[1], e[2]});
+            g.get(e[1]).add(new int[]{e[0], e[2]});
+        }
+
+        dist[start] = 0;
+        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[1]));
+        pq.add(new int[]{start, 0});
+        while (!pq.isEmpty()) {
+            int[] curr = pq.poll();
+            if (curr[1] > dist[curr[0]]) continue;
+            for (int[] ne : g.get(curr[0])) {
+                dist[ne[0]] = dist[curr[0]] + ne[1];
+                pq.add(new int[]{ne[0], dist[ne[0]]});
+            }
+        }
+        return dist;
     }
 
 
@@ -98,45 +136,45 @@ public class Graphs {
         }
         return curr;
     }
+
     public static ArrayList<Integer> findOrder(int n, int[][] prerequisites) {
         // code here
         Map<Integer, ArrayList<Integer>> map = new HashMap<Integer, ArrayList<Integer>>();
         ArrayList<Integer> val;
-        int[] indegress = new int[n+1];
-        for(int i=0; i<prerequisites.length;i++) {
+        int[] indegress = new int[n + 1];
+        for (int i = 0; i < prerequisites.length; i++) {
             int x = prerequisites[i][0];
             int y = prerequisites[i][1];
 
-            if(map.containsKey(x)) {
+            if (map.containsKey(x)) {
                 val = map.get(x);
-            }
-            else{
+            } else {
                 val = new ArrayList<>();
             }
             val.add(y);
-            map.put(x,val);
+            map.put(x, val);
             indegress[x]++;
         }
         ArrayList<Integer> order = new ArrayList<>();
         Queue<Integer> q = new LinkedList<>();
-        for(int i = 0;i<n;i++) {
-            if(!map.containsKey(i)) {
+        for (int i = 0; i < n; i++) {
+            if (!map.containsKey(i)) {
                 q.add(i);
             }
         }
-        while (!q.isEmpty()){
+        while (!q.isEmpty()) {
             int curr = q.poll();
             order.add(curr); // all no pre add the order
-            for (var entry : map.entrySet()){
-                if (entry.getValue().contains(curr)){
+            for (var entry : map.entrySet()) {
+                if (entry.getValue().contains(curr)) {
                     indegress[entry.getKey()]--;
-                    if(indegress[entry.getKey()] == 0) {
+                    if (indegress[entry.getKey()] == 0) {
                         q.add(entry.getKey());
                     }
                 }
             }
         }
-        if(order.size() == n) {
+        if (order.size() == n) {
             return order;
         }
         return new ArrayList<>();
@@ -178,8 +216,8 @@ public class Graphs {
     private static int maxAreaMatrix(int[][] mat) {
         int m = mat[0].length;
         int[] h = new int[m];
-        Arrays.fill(h,0);
-        int ans = 0 ;
+        Arrays.fill(h, 0);
+        int ans = 0;
         for (int[] ints : mat) {
             for (int j = 0; j < m; j++) {
                 if (ints[j] == 1) {
@@ -213,7 +251,7 @@ public class Graphs {
         while (!st.isEmpty()) {
             int tp = st.pop();
             int w = st.isEmpty() ? n : n - st.peek() - 1;
-          //  System.out.println("rectangle area" + arr[tp] + " *" + w + "at index:" + n);
+            //  System.out.println("rectangle area" + arr[tp] + " *" + w + "at index:" + n);
 
             maxArea = Math.max(maxArea, arr[tp] * w);
         }

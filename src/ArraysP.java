@@ -30,6 +30,36 @@ public class ArraysP {
 
         int[] prices2 = {10, 22, 5, 80};
         System.out.println("max profit when 2 trans allowed: " + maxProfitKTrans(prices2, 2));
+
+        // count number of triplets with sum = k
+        System.out.println("count of triplets" + countTripletsWithSumK(new int[]{-2, 0, 1, 3}, 2));
+    }
+
+    private static int countTripletsWithSumK(int[] arr, int k) {
+        int count = 0;
+        Map<Integer, List<int[]>> map = new HashMap<>();
+
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = 0; j < arr.length; j++) {
+                if (i != j) {
+                    var sum = arr[i] + arr[j];
+                    var val = map.getOrDefault(sum, new ArrayList<>());
+                    val.add(new int[]{i, j});
+                    map.put(sum, val);
+                }
+            }
+        }
+        for (int i = 0; i < arr.length; i++) {
+            if (map.containsKey(k - arr[i])) {
+                for (int[] ind : map.get(k - arr[i])) {
+                    if(ind[0] != k && ind[1] != k) {
+                        count++;
+                        System.out.println("pair"+ count+": "+ arr[ind[0]]+" ,"+ arr[ind[1]]+" ,"+arr[k]);
+                    }
+                }
+            }
+        }
+        return count;
     }
 
     public static int maxSubarraySum(int[] array) {
@@ -89,7 +119,7 @@ public class ArraysP {
         int[][][] dp = new int[prices.length + 1][k + 1][2]; //dp -> every day * k transcations (0 to k) * buy/sell
         for (int i = n - 1; i >= 0; i--) {
             for (int j = 0; j <= k; j++) {
-                if(j==0) {
+                if (j == 0) {
                     dp[i][j][0] = 0;
                     dp[i][j][1] = 0;
                 }

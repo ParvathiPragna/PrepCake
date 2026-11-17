@@ -61,6 +61,63 @@ public class LinkedLists {
 
         printList(head2);
 
+        System.out.println();
+        Node head3 = inPlaceReversal(head1);
+        printList(head3);
+//        Given the head of a LinkedList and two positions p and q, reverse the LinkedList from position p to q.
+
+        System.out.println("--");
+        Node head4 = reversalSection(head3, 0, 2);
+        printList(head4);
+
+    }
+
+    private static Node reversalSection(Node head3, int p, int q) {
+        int k = 0; //p & q are 0 based indexes
+        Node curr = head3;
+        Node tail1 = null;
+        Node tail2 = null;
+        while (k != q && curr != null) {
+            curr = curr.next;
+            k++;
+            if (k == p - 1) {
+                tail1 = curr; // prev of p Node , tail of 1st segement
+            }
+        }
+        if (curr == null) {
+            return head3;
+        }
+        tail2 = curr.next;
+        curr.next = null;
+        if (tail1 != null) {
+            tail1.next = inPlaceReversal(tail1.next);
+            curr = tail1.next;
+        } else {
+            var rev = inPlaceReversal(head3);
+            head3 = rev;
+            curr = head3;
+        }
+        while (curr.next != null) {
+            curr = curr.next;
+        }
+        curr.next = tail2;
+        return head3;
+    }
+
+    private static Node inPlaceReversal(Node head) {
+        Node curr, post, prev;
+        curr = head;
+        if (curr == null) {
+            return curr;
+        }
+        prev = null;
+        while (curr != null) {
+            post = curr.next;
+            curr.next = prev;
+            prev = curr;
+            curr = post;
+        }
+        return prev;
     }
 
     //list of heads are givens
@@ -75,7 +132,7 @@ public class LinkedLists {
         while (!pq.isEmpty() && node != null) {
             node.next = pq.poll();
             node = node.next;
-            if(node.next!=null){
+            if (node.next != null) {
                 pq.add(node.next);
             }
         }
@@ -90,6 +147,7 @@ public class LinkedLists {
             }
             node = node.next;
         }
+        System.out.println();
     }
 
     private static Node getFirstNodeInLoop(Node head) {

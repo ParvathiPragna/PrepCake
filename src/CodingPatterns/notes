@@ -1,16 +1,16 @@
 Sliding windows
 two pointer
 Graphs
+subsets
+
 
 re-work on
 trees
 monotonic - stacks (multiple revisions req)
 cyclic sort
-subsets
 modified binary search
 Dynamic programming (multiple revisions req)
 trie
-back tracking
 
 mildly confident
 linked lists
@@ -19,6 +19,11 @@ island pattern
 
 give glance
 heaps - running median ,  underlying construction of heap
-top k elements
+top k elements - heap
+
+cheats
+top k -> heap
+next greater, smaller ->  stack
+shortest distance BFS unweighted , djkestra for non negative weighted ,
 
 

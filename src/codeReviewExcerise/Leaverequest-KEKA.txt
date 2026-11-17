@@ -1,0 +1,91 @@
+// LeaveSystem.java
+// Multiple classes in one file for review exercise
+
+@Service
+public class LeaveSystem {
+
+    // REVIEW: credentials hardcoded
+    private static final String JDBC_URL =
+        "jdbc:mysql://prod-db:3306/hr?user=admin&password=s3cret";
+
+    private DbClient db = new DbClient(JDBC_URL); // REVIEW: direct instantiation, no DI
+    private NotificationClient notifier; // REVIEW: declared but never injected
+
+    public boolean approve(String requestId, String approverId) {
+        // REVIEW: SQL injection risk
+        LeaveRequest req = db.queryFirst(
+            "SELECT * FROM leave_requests WHERE id = " + requestId,
+            LeaveRequest.class);
+
+        LeaveBalance bal = db.queryFirst(
+            "SELECT * FROM leave_balances WHERE employee_id = " + req.employeeId,
+            LeaveBalance.class);
+
+        if (bal.remaining >= req.days) {
+            // REVIEW: missing @Transactional, two writes
+            db.execute("UPDATE leave_balances SET remaining = " + (bal.remaining - req.days)
+                + " WHERE employee_id = " + req.employeeId);
+
+            db.execute("UPDATE leave_requests SET status = 'APPROVED' WHERE id = " + requestId);
+
+            try {
+                notifier.sendEmail(req.employeeId, "Approved");
+            } catch (Exception e) {
+                // REVIEW: empty catch block
+            }
+        }
+        return true; // REVIEW: always returns true
+    }
+}
+
+// DTO class
+class LeaveRequest {
+    public String id;
+    public String employeeId;
+    public int days;
+    public String reason;
+}
+
+// Entity class
+@Entity
+class Employee {
+    @Id
+    public String id;
+
+    @Column
+    public String fullName;
+
+    @Column
+    public double salary; // REVIEW: sensitive data risk if logged
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<LeaveRequest> requests; // REVIEW: CascadeType.ALL + EAGER
+}
+
+// Utility class
+class DateUtil {
+    // REVIEW: SimpleDateFormat not thread-safe
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+    public static String format(Date d) {
+        return sdf.format(d);
+    }
+}
+
+// Controller
+@RestController
+class LeaveController {
+
+    private LeaveSystem service = new LeaveSystem(); // REVIEW: bypasses Spring DI
+
+    @GetMapping("/approve")
+    public ResponseEntity<String> approve(@RequestParam String requestId,
+                                          @RequestParam String approverId) {
+        boolean ok = service.approve(requestId, approverId);
+        if (ok) {
+            return ResponseEntity.ok("Approved");
+        } else {
+            return ResponseEntity.ok("Failed"); // REVIEW: always returns 200
+        }
+    }
+}

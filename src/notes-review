@@ -1,0 +1,137 @@
+Postgress
+MVCC
+
+snap shot timing
+Read Committed -> fresh snapshot at every SQl statement
+Repeateable Read -> single snapshot at start of trasnx
+SSi -> single snapshot at start of transx
+
+on concurrent Updates
+Suppose an accounts table has id = 1 with balance = 100. Two transactions (Tx A and Tx B) start at the same time to subtract 20 from balance.
+1. Tx A executes: UPDATE accounts SET balance = balance - 20 WHERE id = 1; (Acquires row-level lock on id = 1, creates new tuple version 80, does not commit yet).
+2. Tx B executes: UPDATE accounts SET balance = balance - 20 WHERE id = 1; (Blocked by Tx A's row lock; Tx B waits).
+3. Tx A executes: COMMIT; (Releases lock; version 80 is now committed).
+What happens to Tx B next depends on the isolation level:
+• Read Committed: Tx B wakes up, fetches the newly committed row version (80), re-evaluates its WHERE clause, and updates it to 60. Result: Both updates succeed (balance = 60). (Note: If Tx B had read 100 in an earlier SELECT and ran SET balance = 80, it would cause a Lost Update).
+• Repeatable Read: Tx B wakes up and sees that row id = 1 was modified after Tx B's transaction snapshot began. Because PostgreSQL cannot merge changes into an older snapshot, Tx B immediately fails with ERROR: could not serialize access due to concurrent update.
+• Serializable (SSI): Behaves identically to Repeatable Read here. Tx B aborts with ERROR: could not serialize access due to concurrent update and must be retried by your application.
+
++ SSI cares only about write dependencies
+Write skew -> doctor problem
+Suppose a hospital requires at least one doctor on call (on_call = true). Currently, both Alice (id = 1) and Bob (id = 2) are on call. Both try to go off-call simultaneously.
+1. Tx A (Alice): SELECT count(*) FROM doctors WHERE on_call = true; → Sees 2.
+2. Tx B (Bob): SELECT count(*) FROM doctors WHERE on_call = true; → Sees 2.
+3. Tx A (Alice): UPDATE doctors SET on_call = false WHERE id = 1; → COMMIT;
+4. Tx B (Bob): UPDATE doctors SET on_call = false WHERE id = 2; → COMMIT;
+How each level handles this:
+both READ committed & repeatable read updates succed no. of avaible doctors becomes zero
+only SSI can handle it
+
+standard PostgreSQL VACUUM is much closer to a non-compacting Mark-and-Sweep collector,
+whereas VACUUM FULL behaves closer to G1's compaction phase.
+Zero "Stop-the-World" pauses. Runs concurrently alongside reads and writes.
+(Only VACUUM FULL locks the table).
+
+PostgreSQL divides all table and index files into fixed-size 8KB blocks (pages) and uses HOT pruning to clean up dead row versions on individual pages without waiting for a full VACUUM. When tables still become fragmented or bloated over time, pg_repack rebuilds
+and compacts them online without blocking application reads and writes.
+PostgreSQL does not store a table as one continuous stream of bytes; it splits every table file on disk into an array of fixed 8KB (8,192-byte) pages (also called blocks). Every ctid (block_number, tuple_offset) points directly to one of these 8KB pages.
+visiblity Map stores data about each page if it free of dead tuples or full dead tuples
+this helps for next runs vaccum on any insert,update delete this bits are filliped
+
+PostgreSQL divides all table and index files into fixed-size 8KB blocks (pages) and uses HOT pruning to clean up dead row versions on individual pages without waiting for a full VACUUM. When tables still become fragmented or bloated over time, pg_repack rebuilds and
+compacts them online without blocking application reads and writes.
+
+
+In PostgreSQL, EXPLAIN ANALYZE actually executes your SQL query on the server, discards the result rows instead of sending them to your client, and returns the query execution plan enriched with real runtime measurements.
+While standard EXPLAIN only displays what the query planner guesses will happen using table statistics, EXPLAIN ANALYZE shows ground truth—what the executor actually did, step by step.
+
+cache hit ratio decreases
+Autovaccum fails due to 5000 updates/sec
+
+expect:
+
+Storage Symptoms
+
+✅ table bloat
+
+✅ index bloat
+
+✅ unused pages
+
+✅ increased disk usage
+
+Query Symptoms
+
+✅ more heap pages scanned
+
+✅ index scans slower
+
+✅ cache hit ratio decreases
+
+✅
+✅ more I/O
+
+Vacuum Symptoms
+
+✅ autovacuum constantly running
+
+✅ higher vacuum lag
+
+✅ longer vacuum cycles
+
+Replication Symptoms
+
+✅ more WAL generation
+
+✅ replication lag may increase
+
+Application Symptoms
+
+✅ latency increases
+
+✅ connection pool pressure
+
+✅ throughput drops
+
+Worst Case
+
+✅ transaction wraparound warnings
+
+✅ emergency autovacuum
+
+✅ eventually write protection to avoid corruption
+--------------------------------------------------------------------------
+
+kafka EOS
+Kafka EOS is achieved through four layers. First, the producer enables idempotency (enable.idempotence=true),
+which uses a Producer ID (PID) and sequence numbers so broker retries do not create duplicate records. Second,
+Kafka transactions (transactional.id) allow multiple writes across topics, partitions, and even offset commits to be committed atomically,
+ensuring either all records are visible or none are. Third, brokers maintain transaction metadata, fence old producers using producer epochs,
+and hide uncommitted or aborted records. Fourth, consumers use isolation.level=read_committed so they only read committed transactional data.
+
+Together, these provide exactly-once guarantees for Kafka → Process → Kafka workflows, including atomic offset commits via sendOffsetsToTransaction(). However, Kafka EOS does not guarantee exactly-once business operations involving external systems such as PostgreSQL, payment gateways, or REST APIs. For those,
+application-level safeguards such as idempotency keys, unique constraints, processed_event tables, or deduplication logic are still required. tables, or deduplication logic are still required.
+
+Producer Idempotency
+    ↓
+No Duplicate Kafka Writes
+
+Kafka Transactions
+    ↓
+Atomic Multi-Topic Writes
+
+Read Committed Consumers
+    ↓
+Ignore Aborted Transactions
+
+Offset + Output Transaction
+    ↓
+Kafka-to-Kafka EOS
+
+External DB
+    ↓
+Still Needs Idempotency
+
+----------------------------------------------------------------------------------------------
+
+

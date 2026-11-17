@@ -1,0 +1,131 @@
+// CustomerSystem.java
+// Multiple classes in one file for review exercise
+
+@Service
+public class CustomerSystem {
+//REVIEW: exposed creditionals and src config from application.yaml
+    private static final String JDBC_URL =
+        "jdbc:mysql://prod-db:3306/customers?user=admin&password=CustPass!";
+//REVIEW: use @autowired to get dependecies
+//REVIEW: use @Repository to get service which can access and perform db operations instead of DBclient directly
+    private DbClient db = new DbClient(JDBC_URL);
+    //REVIEW:Unsafe for concurrency & multithread env & no limit on cache size leads to masssive cache thus resulting in OOM
+    //REVIEW: no cache expiration policy
+    private Map<String, String> cache = new HashMap<>();
+
+    public boolean registerCustomer(String id, String name, String email) {
+        // REVIEW SQL injection risk + SELECT *  fetch only required fields + validate the inputs for nulls and to avoid RCE
+        Customer cust = db.queryFirst("SELECT * FROM customers WHERE id = " + id, Customer.class);
+
+        if (cust == null) {
+            //REVIEW: use @Trasncation for write to preserve concurrent updates
+            //REVIEW: validate if the principal logged in authorised to register customer here admin
+            db.execute("INSERT INTO customers (id, name, email) VALUES ('" + id + "', '" + name + "', '" + email + "')");
+            //REVIEW: unsafe collection to be a cache + no bounds on it makes it riskier
+            cache.put(id, email); // shared mutable state
+            return true;
+        }
+        //REVIEW: return false since customer already exists
+        return true; // always returns true
+    }
+
+    //REVIEW: have a return type to get if Update was done or not
+    //REVIEW :validate if id is valid or not and emailId as well
+    //REVIEW: now cache holds stale data post update flush the value to cache as well
+    //REVIEW: make write ops using @Transcational + use the service style metioned above for DB access
+    public void updateCustomer(String id, String email) {
+        try {
+            db.execute("UPDATE customers SET email = '" + email + "' WHERE id = " + id);
+        } catch (Exception e) {
+        //REVIEW: silenced exception -> silenced failures in updates + controller return updated incorrectly
+            // empty catch block
+        } // REVIEW: add finally block to close the connections opened with DB
+    }
+
+    public List<Customer> listAll() {
+        // no pagination, SELECT *
+        //REVIEW: use pagination and take pagesize as input
+        return db.query("SELECT * FROM customers", Customer.class);
+    }
+}
+
+// Entity class
+@Entity //REVIEW: add @Version for optimistic locking & switch to private for all fields
+class Customer {
+    @Id //REVIEW: use UUID & Set it
+    public String id;
+
+    @Column
+    public String name;
+
+    @Column //REVIEW: have some validator to check if format of email is correct or not
+    public String email;
+
+    //REVIEW: use of collections in the object so implement both equals and hashcode methods
+    //REVIEW: snowball effect combining CascadeType.ALL & eager fetch remove them
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Order> orders;
+}
+
+// Supporting class
+//REVIEW: missing @Entity and @Version for class
+//REVIEW: switch from public to private for all fields use getter setter to access them
+//REVIEW: set @Min for qty
+//REVIEW: use UUID for id and set it
+class Order {
+    public String id;
+    public String customerId;
+    public String product;
+    public int qty;
+}
+
+// Utility class
+class DateHelper {
+
+//REVIEW: not a thread safe class SimplEDataFormat
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+    public static String format(Date d) {
+        return sdf.format(d);
+    }
+}
+
+// Controller
+@RestController
+class CustomerController {
+    //REVIEW: make it @Autowired instead creating it here
+    private CustomerSystem system = new CustomerSystem();
+
+    @GetMapping("/register") //REVIEW: should be @PostMapping since it create an object
+    //REVIEW: use status code and response entity as return objects instead of strings use @valid for inputs
+    public String register(@RequestParam String id, @RequestParam String name, @RequestParam String email) {
+        boolean ok = system.registerCustomer(id, name, email);
+        if (ok) {
+            return "Registered";
+        }
+        return "Failed";
+    }
+
+    @PostMapping("/update") //REVIEW: should be @patchMapping since you are updating certain field of existing object
+    //REVIEW: have responsenetity with resposeStatus coded based on which distinugush between success and failure
+    //REVIEW : use @Valid  for input parameters
+    //REVIEW: have a global ExceptionHandler to handle exceptions inc ase of invalid inputs & failures
+    public String update(@RequestParam String id, @RequestParam String email) {
+        system.updateCustomer(id, email);
+        return "Updated";
+    }
+
+    @GetMapping("/customers") //REVIEW: take pageSize as input do pagination implement it accordingly
+    //REVIEW: exposing DTO customer is incorrect give a responseEntity
+    public List<Customer> customers() {
+        return system.listAll();
+    }
+}
+
+// Helper class
+class StatusHelper {
+    public static boolean isActive(String status) {
+    //REVIEW: use status.equals("ACTIVE") instead of ==
+        return status == "ACTIVE";
+    }
+}

@@ -63,16 +63,6 @@ Got it 👍 — let’s organize the **graph algorithms in interview order** wit
 
 ---
 
-# 🧩 Quick Comparison Table
-
-| Order | Category         | Algorithms                        | Key Notes |
-|-------|------------------|-----------------------------------|-----------|
-| 1     | Traversals       | BFS, DFS                          | Foundation, connectivity, shortest path (unweighted) |
-| 2     | Cycle Detection  | DFS, BFS, Kahn’s, Union-Find      | Directed vs. undirected, detect cycles |
-| 3     | Bipartite Check  | BFS/DFS coloring                  | 2-coloring, disconnected graphs |
-| 4     | Shortest Path    | BFS, Dijkstra, Bellman-Ford, Floyd-Warshall | Weighted/unweighted, negative cycles |
-| 5     | MST              | Kruskal, Prim                     | Minimum cost spanning tree, forest MST |
-
 ---
 
 ## 🚀 Key Takeaways

@@ -1,0 +1,83 @@
+// PaymentSystem.java
+// Multiple classes in one file for review exercise
+
+@Service
+public class PaymentSystem {
+    //REVIEW: exposed creditionals
+    private static final String JDBC_URL =
+        "jdbc:mysql://prod-db:3306/payments?user=pay_admin&password=PayPass123";
+//REVIEW: use @autowired strongly suggest to use @reposiotory based for db related operations
+    private DbClient db = new DbClient(JDBC_URL);
+
+    public boolean processPayment(String userId, String accountId, double amount) {
+    //REVIEW: validate if account belong to user
+    //REVIEW: queryFirst give result nullable check for nulls
+    //REVIEW: validate inputs for null and valid values
+        Account acc = db.queryFirst("SELECT * FROM accounts WHERE id = " + accountId, Account.class);
+
+        if (acc.balance >= amount) {
+        //REVIEW: use @transcational to execute write operations on db
+            db.execute("UPDATE accounts SET balance = balance - " + amount + " WHERE id = " + accountId);
+            db.execute("INSERT INTO transactions (user_id, account_id, amount) VALUES ('" + userId + "', '" + accountId + "', " + amount + ")");
+            return true;
+        }
+        //REVIEW: return false on failure to process payment
+        return true;
+    }
+
+//REVIEW: have return type like boolean where refund couldnot be posssible
+//REVIEW: validate if transcationId and amount combiantion valid
+//REVIEW: use @transcational for write ops
+//REVIEW: risk of accountId being null validate it
+    public void refund(String transactionId, double amount) {
+        db.execute("UPDATE transactions SET status = 'REFUNDED' WHERE id = " + transactionId);
+        db.execute("UPDATE accounts SET balance = balance + " + amount + " WHERE id = (SELECT account_id FROM transactions WHERE id = " + transactionId + ")");
+    }
+}
+
+// Entity class
+@Entity //REVIEW: use @version foroptimisstic locking for updates
+class Account {
+    @Id //REVIEW: switch to UUID
+    public String id;
+
+    @Column // switch public to private
+    public String userId;
+
+    @Column //REVIEW: add @min to establish a mimn balance since negative value should not exist
+    public double balance;
+
+    @Column //REVIEW: assign a default status like pending to start with
+    public String status;
+}
+
+// Supporting class //REVIEW: @entity and @version missing here
+class Transaction {
+    public String id; //REVIEW: same as above for id to uuid and public to  private
+    public String userId;
+    public String accountId;
+    public double amount;
+    public String status; //REVIEW: assign default value and limits for fields
+}
+
+// Controller
+@RestController
+class PaymentController {
+
+    private PaymentSystem system = new PaymentSystem(); //REVIEW: use @autowired
+
+    @PostMapping("/pay") //REVIEW: switch to responseEntity & implement validation for input parameters
+    public String pay(@RequestParam String userId, @RequestParam String accountId, @RequestParam double amount) {
+        boolean ok = system.processPayment(userId, accountId, amount);
+        if (ok) { //REVIEW: use responseStatus code to tell about success or failure of operation
+            return "Payment successful";
+        }
+        return "Payment failed";
+    }
+
+    @GetMapping("/refund") //REVIEW: refund is also update operation need to be @patchMapping + response entitity as return object + validation for inputs
+    public String refund(@RequestParam String transactionId, @RequestParam double amount) {
+        system.refund(transactionId, amount);
+        return "Refund complete";
+    }
+}

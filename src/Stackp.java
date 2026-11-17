@@ -1,8 +1,5 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Stack;
-
+import java.util.*;
+import CodingPatterns.Graphs;
 public class Stackp {
     public static void main(String[] args) {
         System.out.println(isBalanced("(("));
@@ -17,7 +14,9 @@ public class Stackp {
         List<Integer> arr = Arrays.asList(1, 2, 3, 4, 5, 6);
         st.addAll(arr);
         System.out.println(deleteMiddleOfStack(st));
-        st.add(2); st.add(3); st.add(9);
+        st.add(2);
+        st.add(3);
+        st.add(9);
         System.out.println(sortStack(st));
 
 
@@ -29,64 +28,75 @@ public class Stackp {
         System.out.println(evalPostfix(Arrays.asList("2", "3", "1", "*", "+", "9", "-")));
         System.out.println(evalPostfix(Arrays.asList("2", "3", "^", "1", "+")));
         // next greater element in the array
-        System.out.println(Arrays.toString(nextGreaterElem(Arrays.asList(6,8,0,1,3).toArray(new Integer[0]))));
+        System.out.println(Arrays.toString(nextGreaterElem(Arrays.asList(6, 8, 0, 1, 3).toArray(new Integer[0]))));
         //next smaller
-        System.out.println(Arrays.toString(nextSmallerElem(Arrays.asList(6,8,0,1,3).toArray(new Integer[0]))));
+        System.out.println(Arrays.toString(nextSmallerElem(Arrays.asList(6, 8, 0, 1, 3).toArray(new Integer[0]))));
         //Given array of integer, find the next smaller of next greater element of every element in array
         System.out.println(Arrays.toString(nextSmallerOfNextGreaterElem(Arrays.asList(5, 1, 9, 2, 5, 1, 7).toArray(new Integer[0]))));
 
         //celebrity problem 
-        int[][] mat = { { 1, 1, 0 },
-                { 0, 1, 0 },
-                { 0, 1, 1 } };
+        int[][] mat = {{1, 1, 0},
+                {0, 1, 0},
+                {0, 1, 1}};
         System.out.println(celebrity(mat));
 
         // max of min's
-        int[] array = {10, 20, 30, 50, 10, 70, 30};
-        System.out.println(maxOfMins(array));
+        Integer[] array = {10, 20, 30, 50, 10, 70, 30};
+        System.out.println(Graphs.printArray(maxOfMins(array)));
     }
-/*
-find the maximum among minimums of all window sizes
- */
-    private static int[] maxOfMins(int[] array) {
-        Stack<Integer> st = new Stack<>();
-        
-        return new int[0];
+
+    /*
+    find the maximum among minimums of all window sizes
+     */
+    private static int[] maxOfMins(Integer[] array) {
+        Queue<Integer> q = new ArrayDeque<>(List.of(array));
+        int[] res = new int[array.length];
+        Arrays.fill(res,Integer.MIN_VALUE);
+        for (int ws = 0; ws < array.length; ws++) {
+            int len = 0;
+            while (len < array.length - ws) {
+                var x= q.poll();
+                var y = q.peek();
+                q.add(Math.min(x,y));
+                res[ws] = Math.max(res[ws],x);
+                len++;
+            }
+        }
+        return res;
     }
 
     private static int celebrity(int[][] mat) {
         Stack<Integer> st = new Stack<>();
-        for(int i =0; i< mat.length; i++)
+        for (int i = 0; i < mat.length; i++)
             st.push(i);
-        while (st.size()>1) {
+        while (st.size() > 1) {
             // enter if number of elements are at least 2;  so 2 pops are fine
-          Integer a = st.pop();
-          Integer b = st.pop();
-          if(mat[a][b] == 1) {
-              st.push(b);
-          }
-          else {
-              st.push(a);
-          }
+            Integer a = st.pop();
+            Integer b = st.pop();
+            if (mat[a][b] == 1) {
+                st.push(b);
+            } else {
+                st.push(a);
+            }
         }
         int c = st.peek();
         //validate if the only element doesn't know anyone
-        for(int i = 0 ;i < mat.length ; i++) {
-            if(i != c) {
-                if(mat[c][i] == 1) {
+        for (int i = 0; i < mat.length; i++) {
+            if (i != c) {
+                if (mat[c][i] == 1) {
                     return 0;
                 }
             }
         }
-        return c+1 ;
+        return c + 1;
     }
 
     private static Stack<Integer> sortStack(Stack<Integer> st) {
         Stack<Integer> temp = new Stack<>();
         Integer ele;
-        while(!st.isEmpty()) {
+        while (!st.isEmpty()) {
             ele = st.pop();
-            while(!temp.isEmpty() && temp.peek() > ele) {
+            while (!temp.isEmpty() && temp.peek() > ele) {
                 st.push(temp.pop());
             }
             temp.push(ele);
@@ -100,11 +110,11 @@ find the maximum among minimums of all window sizes
         Stack<Integer> st = new Stack<>();
         Integer[] gresult = new Integer[arr.length];
         Arrays.fill(gresult, -1);
-        for(int i = arr.length-1; i>=0 ; i--) {
+        for (int i = arr.length - 1; i >= 0; i--) {
             while (!st.isEmpty() && arr[st.peek()] <= arr[i]) {
                 st.pop();
             }
-            if(!st.isEmpty()){
+            if (!st.isEmpty()) {
                 gresult[i] = st.peek();
             }
             st.push(i);
@@ -113,21 +123,20 @@ find the maximum among minimums of all window sizes
         st.clear();
         Integer[] sresult = new Integer[arr.length];
         Arrays.fill(sresult, -1);
-        for(int i = arr.length-1; i>=0 ; i--) {
+        for (int i = arr.length - 1; i >= 0; i--) {
             while (!st.isEmpty() && st.peek() >= arr[i]) {
                 st.pop();
             }
-            if(!st.isEmpty()){
+            if (!st.isEmpty()) {
                 sresult[i] = st.peek();
             }
             st.push(arr[i]);
         }
         Integer[] result = new Integer[arr.length];
-        for(int i = 0;i<arr.length; i++) {
-            if(gresult[i] != -1){
+        for (int i = 0; i < arr.length; i++) {
+            if (gresult[i] != -1) {
                 result[i] = sresult[gresult[i]];
-            }
-            else{
+            } else {
                 result[i] = -1;
             }
         }
@@ -142,7 +151,7 @@ find the maximum among minimums of all window sizes
             while (!st.isEmpty() && st.peek() >= arr[i]) {
                 st.pop();
             } // maintain monotonic increasing stack
-            if(!st.isEmpty()) {
+            if (!st.isEmpty()) {
                 result[i] = st.peek();
             }
             st.push(arr[i]);
@@ -158,7 +167,7 @@ find the maximum among minimums of all window sizes
             while (!st.isEmpty() && st.peek() <= arr[i]) {
                 st.pop();
             }
-            if(!st.isEmpty()) {
+            if (!st.isEmpty()) {
                 result[i] = st.peek();
             }
             st.push(arr[i]);

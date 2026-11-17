@@ -202,7 +202,7 @@ public class Graphs {
     }
 
 
-    private static String printArray(int[] dijkstra) {
+    public static String printArray(int[] dijkstra) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < dijkstra.length; i++) {
             builder.append(dijkstra[i]).append(" ");
@@ -218,7 +218,6 @@ public class Graphs {
      */
     private static int[] dijkstra(int v, List<List<int[]>> adj, int start) {
         int[] dist = new int[v];
-        // boolean[] visit = new boolean[v];
         Arrays.fill(dist, Integer.MAX_VALUE);
         dist[start] = 0;
         PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[1]));

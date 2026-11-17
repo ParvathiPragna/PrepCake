@@ -28,7 +28,6 @@ public class SlidingWindows {
         System.out.println("Minimum window for p in s: " + swe.minWindow("abcabcbbxyzw", "bcb"));
         System.out.println("Minimum window for p in s: " + swe.minWindow("abcabcbbxyzw", "bcbp"));
 
-
     }
 
     public int minWindow(String s, String t) {

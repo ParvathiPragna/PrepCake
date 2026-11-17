@@ -1,0 +1,122 @@
+// OrderSystem.java
+// Multiple classes in one file for review exercise
+
+@Service
+public class OrderSystem {
+
+    //REVIEW: security risk creditional exposed, pass config from appliyacation.yaml
+    private static final String JDBC_URL =
+        "jdbc:mysql://prod-db:3306/orders?user=order_admin&password=Ord3rPass";
+
+        //REVIEW: use dependecience inversion & have service which can provide records based on query
+    private DbClient db = new DbClient(JDBC_URL);
+        //REVIEW: collection unsafe for concurrency and multi thread environment
+    private List<String> auditLog = new ArrayList<>();
+
+    public boolean placeOrder(String userId, String productId, int qty) {
+            //REVIEW: validate then parameters
+                //REVIEW: sql injection risk
+                    //REVIEW: select * fetch everything metion columns that are required
+        Order order = db.queryFirst("SELECT * FROM orders WHERE product_id = " + productId,
+                                    Order.class);
+            //REVIEW: queryfirst can give null do null check
+                //REVIEW: encapsulation broken used get method
+        if (order.stock >= qty) {
+            //REVIEW: use @Transcational on sql query write operations to make it thread safe
+            db.execute("UPDATE orders SET stock = " + (order.stock - qty) + " WHERE product_id = " + productId);
+            db.execute("INSERT INTO purchases (user_id, product_id, qty) VALUES ('" + userId + "', '" + productId + "', " + qty + ")");
+            auditLog.add("Order placed by " + userId);
+            return true;
+        }
+            //REVIEW: return false on failure
+        return true;
+    }
+
+    //REVIEW: same as above use @Transcation & validate the orderId if it exists first
+        //REVIEW: use spring @repository for operation in entities instead of sql statements
+    public void cancelOrder(String orderId) {
+        //REVIEW: do validations if an order can be cancelled or not + use @Transcation
+        db.execute("DELETE FROM purchases WHERE id = " + orderId);
+        db.execute("UPDATE orders SET status = 'CANCELLED' WHERE id = " + orderId);
+    }
+}
+
+// Entity class
+@Entity     //REVIEW: use @version for optimisstic locking for updates
+
+class Order {
+    //REVIEW: make the field private and use getter to get values
+    @Id
+        //REVIEW: have logic to generate Id UUID is better not string for type
+    public String id;
+
+    @Column
+    public String productId;
+
+    @Column     //REVIEW: place @min @max to define boundaries for stock value since it shouldnt be <0
+    public int stock;
+
+    //REVIEW: assign default value pending for status which will changed later
+    @Column
+    public String status;
+
+    //REVIEW: snow ball effect pulls everything like old and new purchases for every purchase
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<Purchase> purchases;
+}
+
+// Supporting class
+    //REVIEW: requires @entity and @version annoatation purchase has it own table it is an entity
+class Purchase {
+    //REVIEW: use private for fields instead of public
+        //REVIEW: have logic for Id switch to UUID
+    public String id;
+    public String userId;
+    public String productId;
+    //REView : use @min @max to define boundaries
+    public int qty;
+}
+
+// Utility class
+class DateHelper {
+    //REVIEW: unsafe for multi thread
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    public static String format(Date d) {
+        return sdf.format(d);
+    }
+}
+
+// Controller
+@RestController
+class OrderController {
+    //REVIEW: using new breaks spring proxy use autowired instead to get instance
+    private OrderSystem system = new OrderSystem();
+
+    @PostMapping("/place")
+    public String place(@RequestParam String userId, @RequestParam String productId, @RequestParam int qty) {
+        //REVIEW: return responseentity  not string use response code to distingush if it succesful or not
+            //REVIEW: use @valid annoataion for the inputs can use @min and @max for qty
+        boolean ok = system.placeOrder(userId, productId, qty);
+        if (ok) {
+            return "Order successful";
+        }
+        return "Order failed";
+    }
+
+    @GetMapping("/cancel")
+    public String cancel(@RequestParam String orderId) {
+        //REVIEW: not every order can be cancelled already delivered or processed order cannot be cancelled incorrect logic here
+            //REVIEW: fix return type to responseEntity set statu codes
+        system.cancelOrder(orderId);
+        return "Cancelled";
+    }
+}
+
+// Helper class
+class StatusHelper {
+    public static boolean isCancelled(String status) {
+        //REVIEW: use status.equals() instead of ==
+        return status == "CANCELLED";
+    }
+}

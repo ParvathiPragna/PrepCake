@@ -1,0 +1,105 @@
+// InventorySystem.java
+// Multiple classes in one file for review exercise
+
+@Service
+public class InventorySystem {
+//REVIEW: exposed creditionals and src config from application.yaml
+    private static final String JDBC_URL =
+        "jdbc:postgresql://prod-db:5432/inventory?user=inv_admin&password=InvPass123";
+
+//REVIEW: use @Autowired + use @Repository based service to access db objects
+    private DbClient db = new DbClient(JDBC_URL);
+
+    public List<Item> getAllItems() {
+        // returns all rows without pagination
+        //REVIEW: results to be paginated
+        return db.query("SELECT * FROM items", Item.class);
+    }
+
+    public void updateStock(String itemId, int qty) {
+        // multiple writes without transaction
+        //REVIEW: missing validation for parameters risk of sql injection here use @transcational on write related operations
+        //strongly advise to switch repository style service to do DB operations
+        db.execute("UPDATE items SET stock = stock - " + qty + " WHERE id = " + itemId);
+        db.execute("INSERT INTO stock_logs (item_id, qty) VALUES ('" + itemId + "', " + qty + ")");
+    }
+
+    public void exportData() {
+        Connection conn = null;
+        try {
+            conn = DriverManager.getConnection(JDBC_URL);
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM items");
+            while (rs.next()) {
+                System.out.println(rs.getString("id") + "," + rs.getInt("stock"));
+            }
+        } catch (Exception e) {
+            //REVIEW: sileced exception need exception handling here
+            // swallowed exception
+        } finally {
+        //REVIEW: connection need to be closed
+            // connection not closed properly
+        }
+    }
+}
+
+// Entity class
+@Entity //REVIEW: use @Version
+class Item {
+    @Id //REVIEW: switch to UUID
+    public String id;
+
+    @Column //REVIEW: switch all fields to private use getter to access the fields
+    public String name;
+
+    @Column //REVIEW: set @min @max to have boundaries for the values
+    public int stock;
+//REVIEW: risk of fetching all records donot use CascadeType.ALL with eager fetch
+//REVIEW: have @equals @hashcode methods
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<StockLog> logs;
+}
+
+// Supporting class
+//REVIEW: missing @entity and @version here
+class StockLog {
+//REVIEW: switch all fields to private
+    public String id;
+
+    public String itemId;
+    public int qty;
+}
+
+// Utility class
+class DateUtil {
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+
+    public static String format(Date d) {
+        return sdf.format(d);
+    }
+}
+
+// Controller
+@RestController
+class InventoryController {
+
+//REVIEW: do bean injection here instead of new
+    private InventorySystem system = new InventorySystem();
+//REVIEW: use response entity instead of string
+    @GetMapping("/updateStock")  //REVIEW: do @postMapping + add @valid
+    public String updateStock(@RequestParam String itemId, @RequestParam int qty) {
+        system.updateStock(itemId, qty);
+        return "Stock updated";
+    }
+
+    @GetMapping("/items") //REVIEW: do pagination take page size + use response entity exposing DTO structure ere avoid it
+    public List<Item> items() {
+        return system.getAllItems();
+    }
+
+    @GetMapping("/export")  //REVIEW: return object need to be responseentity + use status code to communiate success or failure
+    public String export() {
+        system.exportData();
+        return "Export complete";
+    }
+}

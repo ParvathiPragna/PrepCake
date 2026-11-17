@@ -1,0 +1,93 @@
+// PayrollSystem.java
+// Multiple classes in one file for review exercise
+
+@Service
+public class PayrollSystem {
+    //review: creditionals exposed
+    private static final String JDBC_URL =
+        "jdbc:postgresql://prod-db:5432/payroll?user=pay_admin&password=Adm1nPass";
+    //review: dependence injection please
+    private DbClient db = new DbClient(JDBC_URL);
+    private Map<String, Double> cache = new HashMap<>();
+
+    public double calculateBonus(String employeeId) {
+    //review: do validations for employeeid to prevent sql injections
+        Employee emp = db.queryFirst("SELECT * FROM employees WHERE id = " + employeeId,
+                                     Employee.class);
+//review: have separate service , repository service which give data of employee - using @repository
+        double bonus = emp.salary * 0.10; // review: use get setters here
+        cache.put(employeeId, bonus); // generic cache name why it is used ?
+        return bonus;
+    }
+
+    public void exportReport() {
+        Connection conn = null;
+        try {
+        //review use repository service defined to fix the above comment  connect to db
+            conn = DriverManager.getConnection(JDBC_URL);
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM payroll");
+            while (rs.next()) {
+            //review: full table is printed out here fix it !!
+                System.out.println(rs.getString("id") + "," + rs.getDouble("amount"));
+            }
+        } catch (Exception e) { //review: empty catch block
+        } finally { //review empty final block, connection is closed here
+        }
+    }
+}
+
+// Entity class
+@Entity
+class Employee {
+    @Id
+    public String id;
+
+    @Column
+    public String name;
+
+    @Column
+    public double salary;
+
+    @Version
+    public Long version;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<PayrollRecord> records; //review : snowball effect fetchs all record because of eagar + all remove them
+}
+
+// Supporting class
+class PayrollRecord {
+    public String id;
+    public double amount;
+}
+
+// Utility class
+class DateHelper {
+//review: not thread safe
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+
+    public static String format(Date d) {
+        return sdf.format(d);
+    }
+}
+
+// Controller
+@RestController
+class PayrollController {
+
+    private PayrollSystem service = new PayrollSystem(); //review do DI
+
+    @PostMapping("/bonus")
+    public ResponseEntity<String> bonus(@RequestParam String employeeId) { //@requestparm should have name
+        double bonus = service.calculateBonus(employeeId);
+        return ResponseEntity.ok("Bonus: " + bonus);
+    }
+
+    @GetMapping("/report")
+    public String report() {
+        service.exportReport(); //review: instead of logging make report as object or file and return that
+        //review the return object need to be responseEntity
+        return "Report exported";
+    }
+}
